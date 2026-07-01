@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Sanctions ToT — Live LLM Run</title>
+<style>
+  body { font-family: -apple-system, sans-serif; max-width: 720px; margin: 0 auto; padding: 2rem 1.25rem; background: #f7f6f2; color: #1a1a18; }
+  h1 { font-size: 20px; font-weight: 600; margin: 0 0 4px; }
+  .subtitle { font-size: 14px; color: #5f5e5a; margin: 0 0 1.5rem; }
+  .case-box { background: #f1efe8; border-radius: 8px; padding: 1rem 1.25rem; margin-bottom: 1.5rem; font-size: 13px; }
+  .case-box b { font-weight: 600; }
+  button { height: 40px; border-radius: 8px; border: 0.5px solid #b4b2a9; background: #ffffff; font-size: 14px; padding: 0 16px; cursor: pointer; font-weight: 500; }
+  button:hover { background: #f1efe8; }
+  button:disabled { opacity: 0.5; cursor: default; }
+  .status { font-size: 13px; color: #5f5e5a; margin: 1rem 0; min-height: 18px; }
+  .branch { border: 0.5px solid #d3d1c7; border-radius: 8px; padding: 12px 14px; margin-bottom: 8px; background: #ffffff; }
+  .branch-id { font-size: 12px; font-weight: 600; color: #5f5e5a; }
+  .branch-hyp { font-size: 14px; font-weight: 600; margin: 4px 0; }
+  .branch-reason { font-size: 13px; color: #5f5e5a; }
+  .branch-score { font-size: 12px; font-weight: 600; margin-top: 6px; display: inline-block; padding: 2px 8px; border-radius: 6px; background: #faeeda; color: #633806; }
+  .recommended { border: 2px solid #ba7517; }
+  .escalation { background: #faeeda; border-radius: 8px; padding: 1rem 1.25rem; margin-top: 1.5rem; font-size: 13px; color: #633806; }
+  .raw-toggle { font-size: 12px; color: #5f5e5a; cursor: pointer; margin-top: 1.5rem; }
+  pre { font-size: 11px; background: #1a1a18; color: #eaf3de; padding: 12px; border-radius: 8px; overflow-x: auto; display: none; }
+</style>
+</head>
+<body>
+
+<h1>Sanctions near-miss ToT — live run</h1>
+<p class="subtitle">Calls the real Claude API using the exact prompts from src/qualifier/agents/tot_sanctions.py, for scenario SCN-06. This validates the prompt design against a real model rather than the mock client used during development.</p>
+
+<div class="case-box">
+  <div><b>Beneficiary:</b> Daniel R. Osei-Mensah</div>
+  <div><b>Closest watchlist entry:</b> Daniel R. Osei</div>
+  <div><b>Match score:</b> 0.8 (near-miss band, 0.65–0.85)</div>
+</div>
+
+<button id="run-btn">Run live ToT (Generator + Critic)</button>
+<div class="status" id="status"></div>
+<div id="branches"></div>
+<div id="escalation"></div>
+
+<div class="raw-toggle" id="raw-toggle" style="display:none;">Show raw API responses</div>
+<pre id="raw-output"></pre>
+
+<script>
+const creditorName = "Daniel R. Osei-Mensah";
+const matchedEntity = "Daniel R. Osei";
+const matchScore = 0.8;
+const rawLog = [];
+
+async function callClaude(prompt, maxTokens, temperature) {
+  const resp = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      model: "claude-sonnet-4-6",
+      max_tokens: maxTokens,
+      temperature: temperature,
+      messages: [{ role: "user", content: prompt }]
+    })
+  });
+  const data = await resp.json();
+  rawLog.push(data);
+  const textBlock = data.content.find(c => c.type === "text");
+  return textBlock ? textBlock.text.trim() : "";
+}
+
+function stripFences(text) {
+  if (text.includes("```")) {
+    const parts = text.split("```");
+    return parts[1].replace(/^json\s*/i, "").trim();
+  }
+  return text;
+}
+
+async function runToT() {
+  const btn = document.getElementById("run-btn");
+  const status = document.getElementById("status");
+  btn.disabled = true;
+  document.getElementById("branches").innerHTML = "";
+  document.getElementById("escalation").innerHTML = "";
+  rawLog.length = 0;
+
+  status.textContent = "Calling ThoughtGenerator (real API call 1 of 2)...";
+
+  const genPrompt = `You are assisting a sanctions compliance analyst reviewing a near-miss OFAC-style watchlist match. Available evidence is limited to names only -- no date of birth, address, or account history is available in this payment instruction.
+
+Beneficiary on the payment instruction: "${creditorName}"
+Closest watchlist entry: "${matchedEntity}"
+Name-similarity score: ${matchScore} (near-miss band: 0.65-0.85)
+
+Generate exactly 3 distinct, plausible hypotheses for what this match represents. For each, give a short hypothesis label and one sentence of reasoning grounded only in the name evidence given (do not invent additional facts like DOB or address that are not provided).
+
+Respond with ONLY a JSON array, no other text, in this exact format:
+[{"hypothesis": "...", "reasoning": "..."}, ...]`;
+
+  let branches;
+  try {
+    const genText = await callClaude(genPrompt, 500, 0.7);
+    branches = JSON.parse(stripFences(genText)).map((b, i) => ({ branch_id: "B" + (i + 1), ...b, critic_score: 0 }));
+  } catch (e) {
+    status.textContent = "Generator call failed: " + e.message;
+    btn.disabled = false;
+    return;
+  }
+
+  status.textContent = "Calling Critic to score branches (real API call 2 of 2)...";
+
+  const branchText = branches.map(b => `${b.branch_id}: ${b.hypothesis} -- ${b.reasoning}`).join("\n");
+  const criticPrompt = `You are a second-opinion reviewer scoring hypotheses about a sanctions near-miss match.
+
+Beneficiary: "${creditorName}" | Closest watchlist entry: "${matchedEntity}" | Similarity score: ${matchScore}
+
+Hypotheses to score (0.0 = poorly supported, 1.0 = well supported by the name evidence alone):
+${branchText}
+
+Respond with ONLY a JSON object mapping branch_id to a numeric score, no other text, e.g.:
+{"B1": 0.4, "B2": 0.7, "B3": 0.3}`;
+
+  let scores;
+  try {
+    const criticText = await callClaude(criticPrompt, 200, 0.0);
+    scores = JSON.parse(stripFences(criticText));
+  } catch (e) {
+    status.textContent = "Critic call failed: " + e.message;
+    btn.disabled = false;
+    return;
+  }
+
+  branches.forEach(b => { b.critic_score = scores[b.branch_id] ?? 0; });
+  const recommended = branches.reduce((a, b) => (b.critic_score > a.critic_score ? b : a));
+
+  status.textContent = "Done \u2014 2 real API calls completed.";
+
+  const branchesEl = document.getElementById("branches");
+  branches.forEach(b => {
+    const div = document.createElement("div");
+    div.className = "branch" + (b.branch_id === recommended.branch_id ? " recommended" : "");
+    div.innerHTML = `
+      <div class="branch-id">${b.branch_id}${b.branch_id === recommended.branch_id ? " \u2014 highest scored" : ""}</div>
+      <div class="branch-hyp">${b.hypothesis}</div>
+      <div class="branch-reason">${b.reasoning}</div>
+      <div class="branch-score">critic score: ${b.critic_score}</div>
+    `;
+    branchesEl.appendChild(div);
+  });
+
+  document.getElementById("escalation").innerHTML = `
+    <div class="escalation">
+      <b>Escalation summary (this is a recommendation only \u2014 not auto-resolved):</b><br><br>
+      Sanctions near-miss (score ${matchScore}) between beneficiary '${creditorName}' and watchlist entry '${matchedEntity}'.
+      Highest-scored recommendation: '${recommended.hypothesis}' (critic score ${recommended.critic_score}) \u2014 ${recommended.reasoning}
+      <br><br>Per policy, this case requires mandatory human Decider sign-off and must not be auto-resolved to PASS or HOLD.
+    </div>
+  `;
+
+  document.getElementById("raw-toggle").style.display = "block";
+  document.getElementById("raw-output").textContent = JSON.stringify(rawLog, null, 2);
+  document.getElementById("raw-toggle").onclick = () => {
+    const pre = document.getElementById("raw-output");
+    pre.style.display = pre.style.display === "none" ? "block" : "none";
+  };
+
+  btn.disabled = false;
+}
+
+document.getElementById("run-btn").addEventListener("click", runToT);
+</script>
+</body>
+</html>

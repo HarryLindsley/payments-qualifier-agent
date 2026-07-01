@@ -1,0 +1,167 @@
+{
+  "_disclosure": "SYNTHETIC DATA. All debtor/creditor names, accounts, and instructions are fabricated for this demonstration and reference only the fictional entities defined in participants.json, ofac_watchlist.json, and transaction_log.json. Each scenario is deliberately engineered to exercise one specific pillar/branch of the Qualifier's logic -- see 'test_intent' on each record. Expected outcomes are hand-computed in expected_outcomes.json BEFORE any agent code is run against this file, so results can be checked against a known ground truth rather than evaluated by eye.",
+  "scenarios": [
+    {
+      "scenario_id": "SCN-01-HAPPY-PATH",
+      "test_intent": "All four pillars PASS. Baseline happy path.",
+      "instruction": {
+        "instruction_id": "INSTR-2026-000501",
+        "amount": 4500.00,
+        "currency": "USD",
+        "debtor_name": "Cormorant Data Systems Inc (synthetic)",
+        "debtor_account": "SYN-ACCT-10001",
+        "debtor_agent_routing": "999000101",
+        "creditor_name": "Fenwick Analytics Partners (synthetic)",
+        "creditor_account": "SYN-ACCT-20044",
+        "creditor_agent_routing": "999000100",
+        "remittance_information": "INV-55210 August analytics retainer",
+        "purpose_code": "SUPP",
+        "submitted_at": "2026-07-01T10:00:00Z"
+      }
+    },
+    {
+      "scenario_id": "SCN-02-REACH-INACTIVE",
+      "test_intent": "Reach pillar HOLD: destination institution has exited the RTP network. Remaining pillars suspended (fail-fast).",
+      "instruction": {
+        "instruction_id": "INSTR-2026-000502",
+        "amount": 12000.00,
+        "currency": "USD",
+        "debtor_name": "Cormorant Data Systems Inc (synthetic)",
+        "debtor_account": "SYN-ACCT-10001",
+        "debtor_agent_routing": "999000101",
+        "creditor_name": "Driftwood Marine Supply (synthetic)",
+        "creditor_account": "SYN-ACCT-20099",
+        "creditor_agent_routing": "999000105",
+        "remittance_information": "Equipment deposit",
+        "purpose_code": "SUPP",
+        "submitted_at": "2026-07-01T10:05:00Z"
+      }
+    },
+    {
+      "scenario_id": "SCN-03-REACH-CAP-BREACH",
+      "test_intent": "Reach pillar HOLD: amount exceeds the destination institution's own reduced cap ($2M), distinct from the network-wide $10M ceiling.",
+      "instruction": {
+        "instruction_id": "INSTR-2026-000503",
+        "amount": 3250000.00,
+        "currency": "USD",
+        "debtor_name": "Cormorant Data Systems Inc (synthetic)",
+        "debtor_account": "SYN-ACCT-10001",
+        "debtor_agent_routing": "999000101",
+        "creditor_name": "Palmerston Industrial Holdings (synthetic)",
+        "creditor_account": "SYN-ACCT-20155",
+        "creditor_agent_routing": "999000106",
+        "remittance_information": "Equipment purchase settlement",
+        "purpose_code": "SUPP",
+        "submitted_at": "2026-07-01T10:10:00Z"
+      }
+    },
+    {
+      "scenario_id": "SCN-04-REGULATORY-FIELD-LENGTH",
+      "test_intent": "Regulatory Mandates pillar HOLD: remittance_information exceeds the verified 140-character limit (189 chars). Reach PASSes first; Sanctions/Fraud suspended.",
+      "instruction": {
+        "instruction_id": "INSTR-2026-000504",
+        "amount": 8750.00,
+        "currency": "USD",
+        "debtor_name": "Cormorant Data Systems Inc (synthetic)",
+        "debtor_account": "SYN-ACCT-10001",
+        "debtor_agent_routing": "999000101",
+        "creditor_name": "Ashford Maintenance Group (synthetic)",
+        "creditor_account": "SYN-ACCT-20301",
+        "creditor_agent_routing": "999000100",
+        "remittance_information": "Payment covers outstanding invoices INV-70211, INV-70212, and INV-70213 for Q3 equipment maintenance services rendered at the Riverside facility during the June through August billing cycle",
+        "purpose_code": "SUPP",
+        "submitted_at": "2026-07-01T10:15:00Z"
+      }
+    },
+    {
+      "scenario_id": "SCN-05-SANCTIONS-CONFIRMED-MATCH",
+      "test_intent": "Sanctions Compliance pillar HOLD: beneficiary name is an exact match to watchlist entry SYN-SDN-0001 (score > 0.85). Automatic HOLD, no ToT needed. Fraud suspended.",
+      "instruction": {
+        "instruction_id": "INSTR-2026-000505",
+        "amount": 27500.00,
+        "currency": "USD",
+        "debtor_name": "Cormorant Data Systems Inc (synthetic)",
+        "debtor_account": "SYN-ACCT-10001",
+        "debtor_agent_routing": "999000101",
+        "creditor_name": "Viktor A. Marchetti",
+        "creditor_account": "SYN-ACCT-20488",
+        "creditor_agent_routing": "999000100",
+        "remittance_information": "Consulting services Q2",
+        "purpose_code": "SUPP",
+        "submitted_at": "2026-07-01T10:20:00Z"
+      }
+    },
+    {
+      "scenario_id": "SCN-06-SANCTIONS-NEAR-MISS-TOT",
+      "test_intent": "Sanctions Compliance pillar lands in the 0.65-0.85 near-miss band against watchlist entry SYN-SDN-0003 ('Daniel R. Osei'). Must trigger ToT (Generator/Critic/Decision-Maker, BFS) and escalate to a human Decider -- must NOT auto-resolve to PASS or HOLD.",
+      "instruction": {
+        "instruction_id": "INSTR-2026-000506",
+        "amount": 64000.00,
+        "currency": "USD",
+        "debtor_name": "Cormorant Data Systems Inc (synthetic)",
+        "debtor_account": "SYN-ACCT-10001",
+        "debtor_agent_routing": "999000101",
+        "creditor_name": "Daniel R. Osei-Mensah",
+        "creditor_account": "SYN-ACCT-20612",
+        "creditor_agent_routing": "999000102",
+        "remittance_information": "Contract settlement phase 2",
+        "purpose_code": "SUPP",
+        "submitted_at": "2026-07-01T10:25:00Z"
+      }
+    },
+    {
+      "scenario_id": "SCN-07-FRAUD-DUPLICATE",
+      "test_intent": "Fraud Signals pillar HOLD: matches transaction_log entry INSTR-2026-000412 on debtor, creditor, amount, and reference, submitted 4.5 minutes later -- inside the 10-minute duplicate window.",
+      "instruction": {
+        "instruction_id": "INSTR-2026-000507",
+        "amount": 61000.00,
+        "currency": "USD",
+        "debtor_name": "Palisade Textiles Corp (synthetic)",
+        "debtor_account": "SYN-ACCT-55810",
+        "debtor_agent_routing": "999000101",
+        "creditor_name": "Northgate Mercantile Supply (synthetic)",
+        "creditor_account": "SYN-ACCT-40199",
+        "creditor_agent_routing": "999000103",
+        "remittance_information": "PO-4471",
+        "purpose_code": "SUPP",
+        "submitted_at": "2026-07-01T08:19:30Z"
+      }
+    },
+    {
+      "scenario_id": "SCN-08-FRAUD-BEHAVIORAL-SCORE",
+      "test_intent": "Fraud Signals pillar HOLD: round-number amount, first-time beneficiary (not in transaction_log), vague remittance reference, and anomalous 3 AM submission time -- behavioral score should exceed the 0.65 threshold.",
+      "instruction": {
+        "instruction_id": "INSTR-2026-000508",
+        "amount": 500000.00,
+        "currency": "USD",
+        "debtor_name": "Cormorant Data Systems Inc (synthetic)",
+        "debtor_account": "SYN-ACCT-10001",
+        "debtor_agent_routing": "999000101",
+        "creditor_name": "Thornbury Capital Ventures (synthetic)",
+        "creditor_account": "SYN-ACCT-20744",
+        "creditor_agent_routing": "999000104",
+        "remittance_information": "misc",
+        "purpose_code": "SUPP",
+        "submitted_at": "2026-07-01T03:14:00Z"
+      }
+    },
+    {
+      "scenario_id": "SCN-09-REGULATORY-REMEDIATION-ELIGIBLE",
+      "test_intent": "Regulatory HOLD on a remittance-length violation that IS eligible for the Enrichment Agent. Run this scenario under both REMEDIATION_MODE settings to see the same instruction resolve two different ways: 'human_in_the_loop' escalates to a Validator like any other HOLD; 'agentic' truncates the field, re-validates, and resumes the pipeline automatically. Demonstrates the hard safety boundary: this is the ONLY pillar/violation type eligible for auto-remediation, in either mode.",
+      "instruction": {
+        "instruction_id": "INSTR-2026-000509",
+        "amount": 15200.00,
+        "currency": "USD",
+        "debtor_name": "Cormorant Data Systems Inc (synthetic)",
+        "debtor_account": "SYN-ACCT-10001",
+        "debtor_agent_routing": "999000101",
+        "creditor_name": "Brightwater Facilities Management (synthetic)",
+        "creditor_account": "SYN-ACCT-20890",
+        "creditor_agent_routing": "999000100",
+        "remittance_information": "Settlement of invoices INV-91004 and INV-91005 for facilities maintenance services performed at the downtown office campus building complex during Q2 2026 fiscal year",
+        "purpose_code": "SUPP",
+        "submitted_at": "2026-07-01T11:00:00Z"
+      }
+    }
+  ]
+}

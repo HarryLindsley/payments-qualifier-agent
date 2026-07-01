@@ -1,0 +1,115 @@
+{
+  "_disclosure": "These outcomes were computed by hand against participants.json, ofac_watchlist.json, transaction_log.json, and regulatory_chunks.json BEFORE any agent/tool code was written. Purpose: give step 13 (end-to-end run) a ground truth to check the built system against, rather than eyeballing whether output 'looks right'. If the built system disagrees with a row here, that is a bug to investigate -- in either the code or this hand-computation -- not something to silently accept.",
+  "expected_outcomes": [
+    {
+      "scenario_id": "SCN-01-HAPPY-PATH",
+      "reach": "PASS - routing 999000100 (Meridian Trust Bank) is active, $4,500 is within its $10,000,000 institution cap",
+      "regulatory": "PASS - remittance_information is 37 chars, well under the 140-char limit; all required fields present",
+      "sanctions": "PASS - 'Fenwick Analytics Partners' does not resemble any watchlist entry; expected score well under 0.65",
+      "fraud": "PASS - not present in transaction_log (no duplicate); not round-number, not off-hours, first-time beneficiary alone insufficient to breach 0.65 threshold",
+      "final_verdict": "PASS",
+      "escalated": false
+    },
+    {
+      "scenario_id": "SCN-02-REACH-INACTIVE",
+      "reach": "HOLD - routing 999000105 (Somerset Prairie Bank) is marked active=false in participants.json",
+      "regulatory": "NOT_RUN - fail-fast, Reach HOLD suspends remaining pillars",
+      "sanctions": "NOT_RUN",
+      "fraud": "NOT_RUN",
+      "final_verdict": "HOLD",
+      "hold_reason": "Destination not RTP-enabled",
+      "escalated": true,
+      "escalation_role": "Validator"
+    },
+    {
+      "scenario_id": "SCN-03-REACH-CAP-BREACH",
+      "reach": "HOLD - routing 999000106 (Ashgrove Mercantile Bank) is active but institution_cap is $2,000,000; instructed amount $3,250,000 exceeds it",
+      "regulatory": "NOT_RUN",
+      "sanctions": "NOT_RUN",
+      "fraud": "NOT_RUN",
+      "final_verdict": "HOLD",
+      "hold_reason": "Amount exceeds destination institution's cap",
+      "escalated": true,
+      "escalation_role": "Validator"
+    },
+    {
+      "scenario_id": "SCN-04-REGULATORY-FIELD-LENGTH",
+      "reach": "PASS - routing 999000100 active, within cap",
+      "regulatory": "HOLD - remittance_information is 189 characters, exceeds the verified 140-character limit (chunk RULE-REMIT-001)",
+      "sanctions": "NOT_RUN",
+      "fraud": "NOT_RUN",
+      "final_verdict": "HOLD",
+      "hold_reason": "pacs.008 field length violation",
+      "escalated": true,
+      "escalation_role": "Validator"
+    },
+    {
+      "scenario_id": "SCN-05-SANCTIONS-CONFIRMED-MATCH",
+      "reach": "PASS",
+      "regulatory": "PASS - remittance_information 24 chars",
+      "sanctions": "HOLD - 'Viktor A. Marchetti' exact string match to watchlist entry SYN-SDN-0001; expected score > 0.85, confirmed match band",
+      "fraud": "NOT_RUN",
+      "final_verdict": "HOLD",
+      "hold_reason": "Sanctions hit -- manual review required",
+      "escalated": true,
+      "escalation_role": "Validator"
+    },
+    {
+      "scenario_id": "SCN-06-SANCTIONS-NEAR-MISS-TOT",
+      "reach": "PASS",
+      "regulatory": "PASS - remittance_information 27 chars",
+      "sanctions": "NEAR_MISS - 'Daniel R. Osei-Mensah' shares given name, middle initial, and root surname with watchlist entry SYN-SDN-0003 ('Daniel R. Osei'); expected score in 0.65-0.85 band. Must trigger ToT (BFS, Generator/Critic/Decision-Maker), and the surviving branch is a RECOMMENDATION only -- final resolution requires a human Decider and is NOT auto-resolved to PASS or HOLD by this system.",
+      "fraud": "NOT_RUN - Sanctions pillar has not concluded pending Decider sign-off; fraud check deferred by design",
+      "final_verdict": "ESCALATED_PENDING_DECIDER",
+      "hold_reason": null,
+      "escalated": true,
+      "escalation_role": "Decider",
+      "grading_note": "The correctness check for this scenario is NOT 'did the agent pick PASS or HOLD' -- it is: (1) did the tool correctly classify the score into the near-miss band, (2) did ToT actually run, (3) did the system correctly refuse to auto-resolve and escalate to Decider instead. This maps directly to the 'Escalation-Routing Accuracy' metric from the Module 6 evaluation design."
+    },
+    {
+      "scenario_id": "SCN-07-FRAUD-DUPLICATE",
+      "reach": "PASS",
+      "regulatory": "PASS - remittance_information 6 chars ('PO-4471')",
+      "sanctions": "PASS - neither party resembles any watchlist entry",
+      "fraud": "HOLD - matches transaction_log entry INSTR-2026-000412 on debtor, creditor, amount ($61,000), and reference ('PO-4471'); submitted 4.5 minutes later, inside the 10-minute window",
+      "final_verdict": "HOLD",
+      "hold_reason": "Duplicate payment detected",
+      "escalated": true,
+      "escalation_role": "Validator"
+    },
+    {
+      "scenario_id": "SCN-08-FRAUD-BEHAVIORAL-SCORE",
+      "reach": "PASS",
+      "regulatory": "PASS - remittance_information 4 chars ('misc')",
+      "sanctions": "PASS - 'Thornbury Capital Ventures' does not resemble any watchlist entry",
+      "fraud": "HOLD - round-number amount ($500,000 exactly), beneficiary absent from transaction_log (first-time), vague/non-specific remittance reference, submission at 03:14 UTC (off-hours) -- combination expected to exceed the 0.65 behavioral risk threshold",
+      "final_verdict": "HOLD",
+      "hold_reason": "Fraud pattern score above threshold",
+      "escalated": true,
+      "escalation_role": "Validator"
+    },
+    {
+      "scenario_id": "SCN-09-REGULATORY-REMEDIATION-ELIGIBLE",
+      "REFERENCE_ONLY_NOT_PART_OF_CORE_EVAL_SET": "This scenario exercises reference/enrichment_agent_concept.py directly and in isolation. It is NOT run through the MVP orchestrator and does not count toward the 8-scenario core evaluation set below. See reference/enrichment_agent_concept.py module docstring.",
+      "reach": "PASS - routing 999000100 (Meridian Trust Bank) active, within cap",
+      "regulatory": "HOLD - remittance_information is 166 chars, exceeds the 140-char limit",
+      "sanctions": "NOT_RUN",
+      "fraud": "NOT_RUN",
+      "grading_note": "This scenario has TWO valid outcomes depending on REMEDIATION_MODE, both verified against the standalone reference module: (1) mode='human_in_the_loop' -> HOLD, escalated=true, escalation_role=Validator, identical treatment to SCN-04 in the actual MVP pipeline. (2) mode='agentic' -> Enrichment Agent truncates remittance_information from 166 to 134 chars, re-validates successfully. Neither path is reachable through the actual orchestrator; both were verified only against the reference module directly.",
+      "final_verdict_human_in_the_loop_mode": "HOLD",
+      "final_verdict_agentic_mode": "PASS (pending Sanctions/Fraud on corrected instruction, both of which independently clear against this beneficiary/amount)",
+      "escalated_human_in_the_loop_mode": true,
+      "escalated_agentic_mode": false
+    }
+  ],
+  "summary": {
+    "total_scenarios": 8,
+    "total_reference_only_scenarios": 1,
+    "reference_only_scenario_note": "SCN-09 exercises reference/enrichment_agent_concept.py in isolation, not the orchestrator. Not included in core totals below.",
+    "expected_pass": 1,
+    "expected_hold": 6,
+    "expected_escalated_pending_human": 1,
+    "pillars_exercised": ["reach", "regulatory", "sanctions", "fraud"],
+    "special_paths_exercised": ["fail_fast_suspension", "institution_specific_cap", "confirmed_sanctions_match", "sanctions_near_miss_tot", "duplicate_detection", "behavioral_fraud_scoring"]
+  }
+}

@@ -1,0 +1,42 @@
+{
+  "_disclosure": "SYNTHETIC DATA. All originator/beneficiary details, amounts, and references are fabricated for this demonstration. No real transaction, account, or institution data is represented.",
+  "duplicate_window_minutes": 10,
+  "transaction_log": [
+    {
+      "instruction_id": "INSTR-2026-000410",
+      "debtor_name": "Alden Fixtures Group LLC (synthetic)",
+      "debtor_account": "SYN-ACCT-77410",
+      "creditor_name": "Briarwood Supply Co (synthetic)",
+      "creditor_account": "SYN-ACCT-90212",
+      "amount": 18250.00,
+      "currency": "USD",
+      "remittance_information": "INV-88213 September fixture order",
+      "submitted_at": "2026-06-30T14:02:11Z",
+      "notes": "Unrelated baseline transaction, no duplicate risk."
+    },
+    {
+      "instruction_id": "INSTR-2026-000411",
+      "debtor_name": "Rangeview Logistics Inc (synthetic)",
+      "debtor_account": "SYN-ACCT-33501",
+      "creditor_name": "Kestrel Freight Partners (synthetic)",
+      "creditor_account": "SYN-ACCT-10877",
+      "amount": 92000.00,
+      "currency": "USD",
+      "remittance_information": "Q2 freight settlement",
+      "submitted_at": "2026-06-30T09:47:55Z",
+      "notes": "Unrelated baseline transaction, no duplicate risk."
+    },
+    {
+      "instruction_id": "INSTR-2026-000412",
+      "debtor_name": "Palisade Textiles Corp (synthetic)",
+      "debtor_account": "SYN-ACCT-55810",
+      "creditor_name": "Northgate Mercantile Supply (synthetic)",
+      "creditor_account": "SYN-ACCT-40199",
+      "amount": 61000.00,
+      "currency": "USD",
+      "remittance_information": "PO-4471",
+      "submitted_at": "2026-07-01T08:15:00Z",
+      "notes": "ORIGINAL of the deliberate duplicate pair. A near-identical instruction submitted minutes later (see sample_payments.json scenario 6) should be flagged by duplicate_payment_checker within the 10-minute window."
+    }
+  ]
+}

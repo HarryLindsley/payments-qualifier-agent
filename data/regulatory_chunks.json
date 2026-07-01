@@ -1,0 +1,80 @@
+{
+  "_disclosure": "MIXED GROUNDING -- read this before using any chunk below. TCH's full RTP Operating Rules and Operating Bulletins sit behind member/account access and could not be retrieved for this project. Each chunk is tagged 'grounding': either 'verified' (the specific fact is confirmed against a real, cited public source) or 'illustrative' (synthetic rule language written for this demonstration, NOT copied or paraphrased from any real TCH document). Do not treat 'illustrative' chunks as real TCH rule text.",
+  "chunks": [
+    {
+      "chunk_id": "RULE-CAP-001",
+      "source_doc": "TCH RTP Operating Rules (illustrative excerpt)",
+      "effective_date": "2017-11-13",
+      "superseded_by": "RULE-CAP-002",
+      "grounding": "verified",
+      "grounding_note": "The $1,000,000 cap and its supersession by a $10,000,000 cap in Feb 2025 are confirmed via public reporting (The Clearing House, Payments Dive). Surrounding rule phrasing is illustrative.",
+      "text": "Per-transaction value submitted over the RTP network by a participating institution shall not exceed one million dollars ($1,000,000 USD). This limit applies to the Instructed Amount of a single Credit Transfer (pacs.008) message and does not aggregate across multiple transactions."
+    },
+    {
+      "chunk_id": "RULE-CAP-002",
+      "source_doc": "TCH RTP Operating Rules (illustrative excerpt)",
+      "effective_date": "2025-02-01",
+      "supersedes": "RULE-CAP-001",
+      "grounding": "verified",
+      "grounding_note": "Confirmed: The Clearing House raised the RTP network per-transaction limit from $1,000,000 to $10,000,000, effective February 2025.",
+      "text": "Effective February 2025, the per-transaction value cap for Credit Transfers submitted over the RTP network is raised to ten million dollars ($10,000,000 USD), superseding the prior one-million-dollar limit. Individual participating institutions may elect to adopt lower institution-specific sending limits at their own discretion."
+    },
+    {
+      "chunk_id": "RULE-REMIT-001",
+      "source_doc": "RTP pacs.008 Message Usage Guidelines (illustrative excerpt)",
+      "effective_date": "2017-07-01",
+      "grounding": "verified",
+      "grounding_note": "Confirmed against the ISO 20022 RTP pacs.008 message guidelines: unstructured remittance information is limited to 140 characters per instance, with a single instance recommended.",
+      "IMPLEMENTATION_SIMPLIFICATION_FLAG": "The real specification is more permissive than the rule this system enforces. A later, verified companion document (RTR ISO 20022 message specification, May 2025) confirms the Unstructured Remittance element actually allows up to THREE repetitions of 140 characters each -- 420 characters total -- not a hard single-instance cap. This system's Regulatory Mandates pillar deliberately enforces the STRICTER single-instance, 140-character rule (matching the original Module 5 capstone design) rather than the more permissive 420-character real limit. This is a scope simplification, not an error in the verified fact: any instruction between 141 and 420 characters would be correctly accepted by the real network but will be flagged HOLD by this MVP. Documented in README Scope & Simplifications and should be corrected before any production use.",
+      "text": "The Unstructured Remittance Information element permits a maximum of 140 characters per instance. Implementers are recommended to populate only a single instance of the Unstructured field. Where remittance detail exceeds this limit, participants should convey the information outside the message and reference it, or use the Structured Remittance component instead."
+    },
+    {
+      "chunk_id": "RULE-REACH-001",
+      "source_doc": "TCH RTP Operating Rules (illustrative excerpt)",
+      "effective_date": "2020-01-01",
+      "grounding": "illustrative",
+      "grounding_note": "Synthetic rule language describing participant eligibility, written for this demonstration.",
+      "text": "A Credit Transfer may only be submitted to a Receiving Participant that is, at the time of submission, an active participant in good standing on the RTP network. Instructions addressed to a routing number that does not resolve to an active participant must not be forwarded to the network and should be held for originator correction or re-routing."
+    },
+    {
+      "chunk_id": "RULE-IRREVOC-001",
+      "source_doc": "RTP Network Overview (illustrative excerpt)",
+      "effective_date": "2017-11-13",
+      "grounding": "verified",
+      "grounding_note": "Confirmed: RTP is a credit-push-only network; settled payments are final and irrevocable.",
+      "text": "The RTP network supports credit-push transfers only; debit-pull transactions are not supported. Once a Credit Transfer has settled, it is final and irrevocable. Participants bear elevated responsibility for pre-submission screening given the absence of a network-level recall mechanism."
+    },
+    {
+      "chunk_id": "RULE-OFAC-001",
+      "source_doc": "OFAC Compliance Guidance for Instant Payments (illustrative excerpt)",
+      "effective_date": "2019-05-01",
+      "grounding": "illustrative",
+      "grounding_note": "Synthetic policy language consistent with general OFAC sanctions-screening obligations; not copied from a specific OFAC publication.",
+      "text": "Participating institutions must screen the beneficiary of each instruction against applicable sanctions lists prior to settlement. No minimum dollar threshold applies. Instructions producing a confirmed match must not be released; near-match results falling within an institution's defined confidence band must be escalated for manual review rather than resolved automatically in either direction."
+    },
+    {
+      "chunk_id": "RULE-FRAUD-001",
+      "source_doc": "TCH RTP Risk Management & Fraud Control Requirements (illustrative excerpt)",
+      "effective_date": "2021-03-15",
+      "grounding": "illustrative",
+      "grounding_note": "Synthetic policy language reflecting the general obligation described in TCH's published fraud-control requirements; specific wording not copied from the real document (not retrievable for this project).",
+      "text": "Participating institutions must maintain fraud detection controls commensurate with the irrevocable, real-time nature of RTP settlement, including duplicate-submission detection and behavioral risk scoring covering first-time beneficiaries, round-number amounts, invoice/reference mismatches, and anomalous submission timing."
+    },
+    {
+      "chunk_id": "RULE-ISO-001",
+      "source_doc": "ISO 20022 pacs.008 Message Definition (illustrative excerpt)",
+      "effective_date": "2017-07-01",
+      "grounding": "verified",
+      "grounding_note": "Confirmed against the public ISO 20022 RTP pacs.008 message specification: no batching, one transaction per message header.",
+      "text": "Each pacs.008 message header shall contain exactly one Credit Transfer Transaction Information block. Batching of multiple payment transactions within a single message header is not permitted on the RTP network."
+    },
+    {
+      "chunk_id": "RULE-HITL-001",
+      "source_doc": "Internal Payment SOPs & Escalation Paths (illustrative, JPM-internal)",
+      "effective_date": "2026-01-01",
+      "grounding": "illustrative",
+      "grounding_note": "Synthetic internal procedural rule, not a TCH publication -- represents the kind of operational SOP that would sit in system-prompt / procedural memory rather than the vector store in the target design.",
+      "text": "Any Sanctions Compliance match score falling between 0.65 and 0.85 must be escalated to a compliance Decider and must never be automatically resolved to either PASS or HOLD by the agent. Any instruction valued at or above the current network transaction cap requires mandatory Decider sign-off regardless of individual pillar verdicts."
+    }
+  ]
+}

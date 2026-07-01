@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Payments Qualifier Agent — Interactive Pillar Demo</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tabler-icons/2.44.0/iconfont/tabler-icons.min.css">
+<style>
+  :root {
+    --surface-0: #f7f6f2; --surface-1: #f1efe8; --surface-2: #ffffff;
+    --text-primary: #1a1a18; --text-secondary: #5f5e5a; --text-muted: #888780;
+    --border: #d3d1c7; --border-strong: #b4b2a9;
+    --bg-success: #eaf3de; --text-success: #27500a; --border-success: #639922;
+    --bg-danger: #fcebeb; --text-danger: #791f1f; --border-danger: #e24b4a;
+    --bg-warning: #faeeda; --text-warning: #633806; --border-warning: #ba7517;
+    --radius: 8px;
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background: var(--surface-0); color: var(--text-primary);
+    max-width: 720px; margin: 0 auto; padding: 2rem 1.25rem;
+  }
+  h1 { font-size: 20px; font-weight: 600; margin: 0 0 4px; }
+  .subtitle { font-size: 14px; color: var(--text-secondary); margin: 0 0 1.75rem; }
+  select, button {
+    height: 36px; border-radius: var(--radius); border: 0.5px solid var(--border-strong);
+    background: var(--surface-2); font-size: 14px; padding: 0 12px; color: var(--text-primary);
+  }
+  button { cursor: pointer; font-weight: 500; }
+  button:hover { background: var(--surface-1); }
+  button:active { transform: scale(0.98); }
+</style>
+</head>
+<body>
+
+<h1>Payments Qualifier Agent — interactive pillar demo</h1>
+<p class="subtitle">Runs the real Reach / Regulatory / Sanctions / Fraud tool output (from src/qualifier/tools/) against the synthetic scenarios in data/sample_payments.json. Select a scenario and click Run.</p>
+
+<div style="display:flex; align-items:center; gap:12px; margin:0 0 1.25rem; flex-wrap:wrap;">
+  <select id="scenario-select" style="flex:1; min-width:220px;"></select>
+  <button id="run-btn"><i class="ti ti-player-play" style="font-size:16px; vertical-align:-3px; margin-right:6px;" aria-hidden="true"></i>Run qualification</button>
+</div>
+
+<div id="intent-line" style="font-size:13px; color:var(--text-secondary); margin:0 0 1.25rem; min-height:18px;"></div>
+
+<div style="background:var(--surface-1); border-radius:var(--radius); padding:1rem 1.25rem; margin:0 0 1.25rem; font-size:13px;">
+  <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(140px, 1fr)); gap:8px 16px;">
+    <div><span style="color:var(--text-muted);">Amount</span><br><span id="f-amount" style="font-weight:600;">-</span></div>
+    <div><span style="color:var(--text-muted);">Debtor</span><br><span id="f-debtor" style="font-weight:600;">-</span></div>
+    <div><span style="color:var(--text-muted);">Creditor</span><br><span id="f-creditor" style="font-weight:600;">-</span></div>
+    <div><span style="color:var(--text-muted);">Routing</span><br><span id="f-routing" style="font-weight:600;">-</span></div>
+  </div>
+</div>
+
+<div id="pillar-trace" style="display:flex; flex-direction:column; gap:8px; margin:0 0 1.25rem;"></div>
+
+<div id="verdict-card" style="display:none; border-radius:12px; padding:1.25rem; text-align:center;">
+  <div id="verdict-label" style="font-size:12px; font-weight:600; letter-spacing:0.02em; margin-bottom:4px;"></div>
+  <div id="verdict-value" style="font-size:24px; font-weight:700;"></div>
+  <div id="verdict-sub" style="font-size:13px; margin-top:6px;"></div>
+</div>
+
+<p style="font-size:12px; color:var(--text-muted); margin-top:2.5rem; border-top:0.5px solid var(--border); padding-top:1rem;">
+  All data shown is synthetic. See /data/*.json for full disclosures. This demo shows deterministic tool output only
+  (Reach, Regulatory, Sanctions screening, Fraud) — the Sanctions near-miss branch would additionally invoke a
+  Tree-of-Thought LLM call in the full pipeline (see /src/qualifier/agents/tot_sanctions.py), not reproduced here.
+</p>
+
+<script>
+const traces = [{"scenario_id": "SCN-01-HAPPY-PATH", "test_intent": "All four pillars PASS. Baseline happy path.", "instruction": {"instruction_id": "INSTR-2026-000501", "amount": 4500.0, "currency": "USD", "debtor_name": "Cormorant Data Systems Inc (synthetic)", "debtor_account": "SYN-ACCT-10001", "debtor_agent_routing": "999000101", "creditor_name": "Fenwick Analytics Partners (synthetic)", "creditor_account": "SYN-ACCT-20044", "creditor_agent_routing": "999000100", "remittance_information": "INV-55210 August analytics retainer", "purpose_code": "SUPP", "submitted_at": "2026-07-01T10:00:00Z"}, "pillars": [{"pillar": "reach", "verdict": "PASS", "reason": "Meridian Trust Bank (synthetic) is active and $4,500.00 is within cap"}, {"pillar": "regulatory", "verdict": "PASS", "reason": "all required fields present, remittance within 140-char limit"}, {"pillar": "sanctions", "verdict": "PASS", "reason": "score 0.386, no meaningful match", "score": 0.386, "band": "clear"}, {"pillar": "fraud", "verdict": "PASS", "reason": "no duplicate detected, fraud score below threshold"}], "final_verdict": "PASS"}, {"scenario_id": "SCN-02-REACH-INACTIVE", "test_intent": "Reach pillar HOLD: destination institution has exited the RTP network. Remaining pillars suspended (fail-fast).", "instruction": {"instruction_id": "INSTR-2026-000502", "amount": 12000.0, "currency": "USD", "debtor_name": "Cormorant Data Systems Inc (synthetic)", "debtor_account": "SYN-ACCT-10001", "debtor_agent_routing": "999000101", "creditor_name": "Driftwood Marine Supply (synthetic)", "creditor_account": "SYN-ACCT-20099", "creditor_agent_routing": "999000105", "remittance_information": "Equipment deposit", "purpose_code": "SUPP", "submitted_at": "2026-07-01T10:05:00Z"}, "pillars": [{"pillar": "reach", "verdict": "HOLD", "reason": "Somerset Prairie Bank (synthetic) is not an active RTP participant (destination not RTP-enabled)"}], "final_verdict": "HOLD"}, {"scenario_id": "SCN-03-REACH-CAP-BREACH", "test_intent": "Reach pillar HOLD: amount exceeds the destination institution's own reduced cap ($2M), distinct from the network-wide $10M ceiling.", "instruction": {"instruction_id": "INSTR-2026-000503", "amount": 3250000.0, "currency": "USD", "debtor_name": "Cormorant Data Systems Inc (synthetic)", "debtor_account": "SYN-ACCT-10001", "debtor_agent_routing": "999000101", "creditor_name": "Palmerston Industrial Holdings (synthetic)", "creditor_account": "SYN-ACCT-20155", "creditor_agent_routing": "999000106", "remittance_information": "Equipment purchase settlement", "purpose_code": "SUPP", "submitted_at": "2026-07-01T10:10:00Z"}, "pillars": [{"pillar": "reach", "verdict": "HOLD", "reason": "amount $3,250,000.00 exceeds Ashgrove Mercantile Bank (synthetic)'s institution cap $2,000,000.00"}], "final_verdict": "HOLD"}, {"scenario_id": "SCN-04-REGULATORY-FIELD-LENGTH", "test_intent": "Regulatory Mandates pillar HOLD: remittance_information exceeds the verified 140-character limit (189 chars). Reach PASSes first; Sanctions/Fraud suspended.", "instruction": {"instruction_id": "INSTR-2026-000504", "amount": 8750.0, "currency": "USD", "debtor_name": "Cormorant Data Systems Inc (synthetic)", "debtor_account": "SYN-ACCT-10001", "debtor_agent_routing": "999000101", "creditor_name": "Ashford Maintenance Group (synthetic)", "creditor_account": "SYN-ACCT-20301", "creditor_agent_routing": "999000100", "remittance_information": "Payment covers outstanding invoices INV-70211, INV-70212, and INV-70213 for Q3 equipment maintenance services rendered at the Riverside facility during the June through August billing cycle", "purpose_code": "SUPP", "submitted_at": "2026-07-01T10:15:00Z"}, "pillars": [{"pillar": "reach", "verdict": "PASS", "reason": "Meridian Trust Bank (synthetic) is active and $8,750.00 is within cap"}, {"pillar": "regulatory", "verdict": "HOLD", "reason": "remittance_information is 189 chars, exceeds the 140-char limit (chunk RULE-REMIT-001)"}], "final_verdict": "HOLD"}, {"scenario_id": "SCN-05-SANCTIONS-CONFIRMED-MATCH", "test_intent": "Sanctions Compliance pillar HOLD: beneficiary name is an exact match to watchlist entry SYN-SDN-0001 (score > 0.85). Automatic HOLD, no ToT needed. Fraud suspended.", "instruction": {"instruction_id": "INSTR-2026-000505", "amount": 27500.0, "currency": "USD", "debtor_name": "Cormorant Data Systems Inc (synthetic)", "debtor_account": "SYN-ACCT-10001", "debtor_agent_routing": "999000101", "creditor_name": "Viktor A. Marchetti", "creditor_account": "SYN-ACCT-20488", "creditor_agent_routing": "999000100", "remittance_information": "Consulting services Q2", "purpose_code": "SUPP", "submitted_at": "2026-07-01T10:20:00Z"}, "pillars": [{"pillar": "reach", "verdict": "PASS", "reason": "Meridian Trust Bank (synthetic) is active and $27,500.00 is within cap"}, {"pillar": "regulatory", "verdict": "PASS", "reason": "all required fields present, remittance within 140-char limit"}, {"pillar": "sanctions", "verdict": "HOLD", "reason": "score 1.0, confirmed match to Viktor A. Marchetti", "score": 1.0, "band": "confirmed_match"}], "final_verdict": "HOLD"}, {"scenario_id": "SCN-06-SANCTIONS-NEAR-MISS-TOT", "test_intent": "Sanctions Compliance pillar lands in the 0.65-0.85 near-miss band against watchlist entry SYN-SDN-0003 ('Daniel R. Osei'). Must trigger ToT (Generator/Critic/Decision-Maker, BFS) and escalate to a human Decider -- must NOT auto-resolve to PASS or HOLD.", "instruction": {"instruction_id": "INSTR-2026-000506", "amount": 64000.0, "currency": "USD", "debtor_name": "Cormorant Data Systems Inc (synthetic)", "debtor_account": "SYN-ACCT-10001", "debtor_agent_routing": "999000101", "creditor_name": "Daniel R. Osei-Mensah", "creditor_account": "SYN-ACCT-20612", "creditor_agent_routing": "999000102", "remittance_information": "Contract settlement phase 2", "purpose_code": "SUPP", "submitted_at": "2026-07-01T10:25:00Z"}, "pillars": [{"pillar": "reach", "verdict": "PASS", "reason": "Cobalt Ridge Bank & Trust (synthetic) is active and $64,000.00 is within cap"}, {"pillar": "regulatory", "verdict": "PASS", "reason": "all required fields present, remittance within 140-char limit"}, {"pillar": "sanctions", "verdict": "ESCALATED", "reason": "score 0.8, near-miss vs Daniel R. Osei -> ToT + human Decider required", "score": 0.8, "band": "near_miss"}], "final_verdict": "ESCALATED"}, {"scenario_id": "SCN-07-FRAUD-DUPLICATE", "test_intent": "Fraud Signals pillar HOLD: matches transaction_log entry INSTR-2026-000412 on debtor, creditor, amount, and reference, submitted 4.5 minutes later -- inside the 10-minute duplicate window.", "instruction": {"instruction_id": "INSTR-2026-000507", "amount": 61000.0, "currency": "USD", "debtor_name": "Palisade Textiles Corp (synthetic)", "debtor_account": "SYN-ACCT-55810", "debtor_agent_routing": "999000101", "creditor_name": "Northgate Mercantile Supply (synthetic)", "creditor_account": "SYN-ACCT-40199", "creditor_agent_routing": "999000103", "remittance_information": "PO-4471", "purpose_code": "SUPP", "submitted_at": "2026-07-01T08:19:30Z"}, "pillars": [{"pillar": "reach", "verdict": "PASS", "reason": "Whitestone National Bank (synthetic) is active and $61,000.00 is within cap"}, {"pillar": "regulatory", "verdict": "PASS", "reason": "all required fields present, remittance within 140-char limit"}, {"pillar": "sanctions", "verdict": "PASS", "reason": "score 0.379, no meaningful match", "score": 0.379, "band": "clear"}, {"pillar": "fraud", "verdict": "HOLD", "reason": "duplicate of INSTR-2026-000412 (4.5 minutes prior)"}], "final_verdict": "HOLD"}, {"scenario_id": "SCN-08-FRAUD-BEHAVIORAL-SCORE", "test_intent": "Fraud Signals pillar HOLD: round-number amount, first-time beneficiary (not in transaction_log), vague remittance reference, and anomalous 3 AM submission time -- behavioral score should exceed the 0.65 threshold.", "instruction": {"instruction_id": "INSTR-2026-000508", "amount": 500000.0, "currency": "USD", "debtor_name": "Cormorant Data Systems Inc (synthetic)", "debtor_account": "SYN-ACCT-10001", "debtor_agent_routing": "999000101", "creditor_name": "Thornbury Capital Ventures (synthetic)", "creditor_account": "SYN-ACCT-20744", "creditor_agent_routing": "999000104", "remittance_information": "misc", "purpose_code": "SUPP", "submitted_at": "2026-07-01T03:14:00Z"}, "pillars": [{"pillar": "reach", "verdict": "PASS", "reason": "Larkfield Community Bank (synthetic) is active and $500,000.00 is within cap"}, {"pillar": "regulatory", "verdict": "PASS", "reason": "all required fields present, remittance within 140-char limit"}, {"pillar": "sanctions", "verdict": "PASS", "reason": "score 0.333, no meaningful match", "score": 0.333, "band": "clear"}, {"pillar": "fraud", "verdict": "HOLD", "reason": "fraud pattern score 1.0 exceeds threshold 0.65 (round_number_amount, first_time_beneficiary, anomalous_timing, vague_remittance_reference)"}], "final_verdict": "HOLD"}];
+
+const pillarIcons = {reach:"ti-map-pin", regulatory:"ti-clipboard-check", sanctions:"ti-shield-exclamation", fraud:"ti-eye-search"};
+const pillarLabels = {reach:"Reach", regulatory:"Regulatory mandates", sanctions:"Sanctions compliance", fraud:"Fraud signals"};
+
+const select = document.getElementById("scenario-select");
+traces.forEach((t, i) => {
+  const opt = document.createElement("option");
+  opt.value = i;
+  opt.textContent = t.scenario_id.replace(/^SCN-\d+-/, "").replace(/-/g, " ") + " \u2192 " + t.final_verdict;
+  select.appendChild(opt);
+});
+
+function verdictColors(v) {
+  if (v === "PASS") return {bg:"var(--bg-success)", text:"var(--text-success)", border:"var(--border-success)"};
+  if (v === "HOLD") return {bg:"var(--bg-danger)", text:"var(--text-danger)", border:"var(--border-danger)"};
+  return {bg:"var(--bg-warning)", text:"var(--text-warning)", border:"var(--border-warning)"};
+}
+
+function renderFacts(inst) {
+  document.getElementById("f-amount").textContent = "$" + inst.amount.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2});
+  document.getElementById("f-debtor").textContent = inst.debtor_name;
+  document.getElementById("f-creditor").textContent = inst.creditor_name;
+  document.getElementById("f-routing").textContent = inst.creditor_agent_routing;
+}
+
+function renderIntent(text) {
+  document.getElementById("intent-line").textContent = text;
+}
+
+async function runScenario() {
+  const t = traces[parseInt(select.value, 10)];
+  renderFacts(t.instruction);
+  renderIntent(t.test_intent);
+
+  const traceEl = document.getElementById("pillar-trace");
+  traceEl.innerHTML = "";
+  const verdictCard = document.getElementById("verdict-card");
+  verdictCard.style.display = "none";
+
+  const allPillars = ["reach", "regulatory", "sanctions", "fraud"];
+
+  for (const pillarName of allPillars) {
+    const row = document.createElement("div");
+    row.style.cssText = "display:flex; align-items:flex-start; gap:10px; border:0.5px solid var(--border); border-radius:var(--radius); padding:10px 12px; background:var(--surface-2); opacity:0;";
+    traceEl.appendChild(row);
+
+    const found = t.pillars.find(p => p.pillar === pillarName);
+
+    if (!found) {
+      row.style.opacity = "1";
+      row.innerHTML = `
+        <i class="ti ${pillarIcons[pillarName]}" style="font-size:18px; color:var(--text-muted); margin-top:1px;" aria-hidden="true"></i>
+        <div style="flex:1;">
+          <div style="font-size:14px; font-weight:600; color:var(--text-muted);">${pillarLabels[pillarName]}</div>
+          <div style="font-size:13px; color:var(--text-muted);">not run \u2014 suspended by an earlier pillar (fail-fast)</div>
+        </div>
+        <span style="font-size:12px; font-weight:600; color:var(--text-muted); white-space:nowrap;">SKIPPED</span>
+      `;
+      continue;
+    }
+
+    await new Promise(r => setTimeout(r, 220));
+    row.style.transition = "opacity 0.25s";
+    row.style.opacity = "1";
+    const c = verdictColors(found.verdict);
+    row.style.borderColor = c.border;
+    let scoreLine = "";
+    if (found.score !== undefined) {
+      scoreLine = `<div style="font-size:12px; color:var(--text-muted); margin-top:2px;">match score ${found.score}</div>`;
+    }
+    row.innerHTML = `
+      <i class="ti ${pillarIcons[pillarName]}" style="font-size:18px; color:${c.text}; margin-top:1px;" aria-hidden="true"></i>
+      <div style="flex:1;">
+        <div style="font-size:14px; font-weight:600;">${pillarLabels[pillarName]}</div>
+        <div style="font-size:13px; color:var(--text-secondary);">${found.reason}</div>
+        ${scoreLine}
+      </div>
+      <span style="font-size:12px; font-weight:600; color:${c.text}; background:${c.bg}; padding:3px 10px; border-radius:var(--radius); white-space:nowrap;">${found.verdict}</span>
+    `;
+  }
+
+  await new Promise(r => setTimeout(r, 200));
+  const fc = verdictColors(t.final_verdict);
+  verdictCard.style.display = "block";
+  verdictCard.style.background = fc.bg;
+  verdictCard.style.border = "1px solid " + fc.border;
+  document.getElementById("verdict-label").style.color = fc.text;
+  document.getElementById("verdict-label").textContent = "FINAL VERDICT";
+  document.getElementById("verdict-value").style.color = fc.text;
+  document.getElementById("verdict-value").textContent = t.final_verdict === "ESCALATED" ? "ESCALATED \u2014 PENDING DECIDER" : t.final_verdict;
+  const sub = document.getElementById("verdict-sub");
+  sub.style.color = fc.text;
+  if (t.final_verdict === "PASS") {
+    sub.textContent = "All four pillars cleared \u2014 recommendation forwarded for execution.";
+  } else if (t.final_verdict === "HOLD") {
+    sub.textContent = "Halted with cause \u2014 routed to a human Validator before correction or resubmission.";
+  } else {
+    sub.textContent = "Near-miss sanctions match \u2014 not auto-resolved. Routed to Tree-of-Thought reasoning, then a human Decider.";
+  }
+}
+
+document.getElementById("run-btn").addEventListener("click", runScenario);
+select.addEventListener("change", runScenario);
+select.value = 0;
+runScenario();
+</script>
+</body>
+</html>

@@ -1,0 +1,43 @@
+{
+  "_disclosure": "SYNTHETIC DATA. Every name, alias, and identifier in this file is fictional, invented for this demonstration. None are copied, paraphrased, or derived from any real OFAC SDN List entry or any other real sanctions or watchlist source. This file exists only to exercise the Sanctions Compliance pillar's matching logic against known, controlled inputs.",
+  "match_score_bands": {
+    "clear": "< 0.65 -> pillar PASSes automatically",
+    "near_miss": "0.65 - 0.85 -> escalates to Tree-of-Thought reasoning + human Decider, never auto-resolved",
+    "confirmed_match": "> 0.85 -> pillar HOLDs automatically, escalated to compliance"
+  },
+  "scoring_note": "Match scores are computed by the sanctions_screening_tool against beneficiary name (and, where relevant, account) similarity to each watchlist entry (including aliases). Exact scores will be validated once the tool's similarity function is implemented in the tool layer (step 6) -- entries below are engineered to land in their intended band, and will be spot-checked against the actual implementation before use in any test scenario.",
+  "watchlist": [
+    {
+      "entry_id": "SYN-SDN-0001",
+      "primary_name": "Viktor A. Marchetti",
+      "aliases": ["Viktor Marchetti", "V. A. Marchetti"],
+      "designation_type": "synthetic illustrative designation",
+      "dob": "1968-11-03",
+      "intended_test_role": "CONFIRMED MATCH -- exact name match, used to drive the automatic Sanctions HOLD scenario."
+    },
+    {
+      "entry_id": "SYN-SDN-0002",
+      "primary_name": "Elena Kowalczyk-Ibrahim",
+      "aliases": ["Elena Kova", "E. Kowalczyk"],
+      "designation_type": "synthetic illustrative designation",
+      "dob": "1975-02-19",
+      "intended_test_role": "CONTROL -- exists on the list but is not referenced by any sample payment, so screening against unrelated names should return a low score. Confirms the tool doesn't over-match."
+    },
+    {
+      "entry_id": "SYN-SDN-0003",
+      "primary_name": "Daniel R. Osei",
+      "aliases": ["D. Osei", "Daniel Osei"],
+      "designation_type": "synthetic illustrative designation",
+      "dob": "1981-07-22",
+      "intended_test_role": "NEAR-MISS -- beneficiary 'Daniel R. Osei-Mensah' shares given name, middle initial, and the root surname with an extension. Engineered to land in the 0.65-0.85 band and trigger ToT."
+    },
+    {
+      "entry_id": "SYN-SDN-0004",
+      "primary_name": "M. Fatima Rahman",
+      "aliases": ["Fatima Rahman", "M.F. Rahman"],
+      "designation_type": "synthetic illustrative designation",
+      "dob": "1990-04-05",
+      "intended_test_role": "NEAR-MISS (secondary) -- reserved for a second near-miss scenario if we want more than one ToT test case. Beneficiary 'Fatima N. Rahman' shares given name and surname, differs on middle initial."
+    }
+  ]
+}

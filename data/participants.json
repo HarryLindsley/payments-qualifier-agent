@@ -1,0 +1,64 @@
+{
+  "_disclosure": "SYNTHETIC DATA. All institution names are fictional. Routing numbers are constructed to be non-resolvable: prefixed '999' (an unallocated ABA prefix block) and deliberately fail the ABA routing-number checksum. Do not treat any value in this file as real. The per-institution 'cap' field is illustrative of how an individual RTP participant's send limit could sit below the network-wide ceiling; the $10,000,000 network ceiling itself is a verified, cited figure (see /docs/verified_constants.md).",
+  "network_transaction_cap": 10000000.00,
+  "network_cap_source": "The Clearing House raised the RTP network per-transaction limit from $1,000,000 to $10,000,000, effective February 2025.",
+  "participants": [
+    {
+      "routing_number": "999000100",
+      "institution_name": "Meridian Trust Bank (synthetic)",
+      "active": true,
+      "institution_cap": 10000000.00,
+      "onboarded_date": "2019-03-12",
+      "notes": "Standard active participant, no reduced cap."
+    },
+    {
+      "routing_number": "999000101",
+      "institution_name": "Harborview Federal Bank (synthetic)",
+      "active": true,
+      "institution_cap": 10000000.00,
+      "onboarded_date": "2018-11-04",
+      "notes": "Standard active participant, no reduced cap. Used as debtor institution in most sample scenarios."
+    },
+    {
+      "routing_number": "999000102",
+      "institution_name": "Cobalt Ridge Bank & Trust (synthetic)",
+      "active": true,
+      "institution_cap": 10000000.00,
+      "onboarded_date": "2020-06-30",
+      "notes": "Standard active participant."
+    },
+    {
+      "routing_number": "999000103",
+      "institution_name": "Whitestone National Bank (synthetic)",
+      "active": true,
+      "institution_cap": 10000000.00,
+      "onboarded_date": "2017-02-18",
+      "notes": "Standard active participant."
+    },
+    {
+      "routing_number": "999000104",
+      "institution_name": "Larkfield Community Bank (synthetic)",
+      "active": true,
+      "institution_cap": 10000000.00,
+      "onboarded_date": "2021-09-01",
+      "notes": "Standard active participant."
+    },
+    {
+      "routing_number": "999000105",
+      "institution_name": "Somerset Prairie Bank (synthetic)",
+      "active": false,
+      "institution_cap": 0.00,
+      "onboarded_date": "2016-04-22",
+      "exited_date": "2026-01-15",
+      "notes": "INTENTIONALLY INACTIVE for test purposes: exited the RTP network. Drives the Reach-pillar 'destination not RTP-enabled' HOLD scenario."
+    },
+    {
+      "routing_number": "999000106",
+      "institution_name": "Ashgrove Mercantile Bank (synthetic)",
+      "active": true,
+      "institution_cap": 2000000.00,
+      "onboarded_date": "2022-01-10",
+      "notes": "INTENTIONALLY set below the $10M network ceiling to test institution-specific cap enforcement, distinct from the network-wide cap. A smaller regional participant electing a conservative send limit is realistic behavior per the network's design (individual institutions may adopt the higher ceiling gradually)."
+    }
+  ]
+}

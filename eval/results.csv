@@ -1,0 +1,9 @@
+scenario_id,test_intent,pillars_run,final_verdict,expected_verdict,matches_expected,escalated,escalation_role,eval_overall,context_adherence,action_advancement,custom_code_eval,escalation_routing_accuracy,end_to_end_ms
+SCN-01-HAPPY-PATH,All four pillars PASS. Baseline happy path.,"reach,regulatory,sanctions,fraud",PASS,PASS,True,False,,PASS,PASS,PASS,PASS,PASS,4.34
+SCN-02-REACH-INACTIVE,Reach pillar HOLD: destination institution has exited the RTP network. Remaining,reach,HOLD,HOLD,True,True,Validator,PASS,N/A,PASS,PASS,N/A,1.35
+SCN-03-REACH-CAP-BREACH,Reach pillar HOLD: amount exceeds the destination institution's own reduced cap ,reach,HOLD,HOLD,True,True,Validator,PASS,N/A,PASS,PASS,N/A,1.37
+SCN-04-REGULATORY-FIELD-LENGTH,Regulatory Mandates pillar HOLD: remittance_information exceeds the verified 140,"reach,regulatory",HOLD,HOLD,True,True,Validator,PASS,PASS,PASS,PASS,N/A,1.76
+SCN-05-SANCTIONS-CONFIRMED-MATCH,Sanctions Compliance pillar HOLD: beneficiary name is an exact match to watchlis,"reach,regulatory,sanctions",HOLD,HOLD,True,True,Validator,PASS,PASS,PASS,PASS,PASS,2.85
+SCN-06-SANCTIONS-NEAR-MISS-TOT,Sanctions Compliance pillar lands in the 0.65-0.85 near-miss band against watchl,"reach,regulatory,sanctions",ESCALATED_PENDING_DECIDER,ESCALATED_PENDING_DECIDER,True,True,Decider,PASS,PASS,PASS,PASS,PASS,2.92
+SCN-07-FRAUD-DUPLICATE,Fraud Signals pillar HOLD: matches transaction_log entry INSTR-2026-000412 on de,"reach,regulatory,sanctions,fraud",HOLD,HOLD,True,True,Validator,PASS,PASS,PASS,PASS,PASS,3.67
+SCN-08-FRAUD-BEHAVIORAL-SCORE,"Fraud Signals pillar HOLD: round-number amount, first-time beneficiary (not in t","reach,regulatory,sanctions,fraud",HOLD,HOLD,True,True,Validator,PASS,PASS,PASS,PASS,PASS,3.57
