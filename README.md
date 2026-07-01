@@ -6,6 +6,21 @@
 
 ---
 
+## Quick start
+
+Three ways to review, depending on what you want:
+
+- **Just want to see it work, no setup:** open [`examples/interactive_demo.html`](examples/interactive_demo.html) in any browser. Pick a scenario, click Run.
+- **Want to run it yourself:**
+  ```bash
+  git clone https://github.com/HarryLindsley/payments-qualifier-agent.git
+  cd payments-qualifier-agent
+  ```
+  then follow [How to run](#how-to-run) below (Colab or local).
+- **Want to review the code:** start at [`src/qualifier/agents/orchestrator.py`](src/qualifier/agents/orchestrator.py) (the LangGraph pipeline), then the four pillar tools in [`src/qualifier/tools/`](src/qualifier/tools/).
+
+---
+
 ## Table of contents
 
 - [The problem](#the-problem)
@@ -22,7 +37,6 @@
 - [Interactive demos](#interactive-demos)
 - [Evaluation](#evaluation)
 - [Human-in-the-loop design](#human-in-the-loop-design)
-- [Known limitations](#known-limitations)
 - [Sibling agents (not built)](#sibling-agents-not-built)
 - [Limitations & next steps](#limitations--next-steps)
 
@@ -40,7 +54,7 @@ The intended users are payments operations and compliance teams at a large finan
 |---|---|
 | Four-pillar pre-flight check: Reach, Regulatory Mandates, Sanctions Compliance, Fraud Signals | Executing, routing, or settling any payment |
 | Structured PASS / HOLD / ESCALATED recommendation with a per-pillar reason | Any decision-making authority beyond recommendation |
-| Grounded citation for Regulatory verdicts (chunk ID + effective date) | Full ISO 20022 pacs.008 schema (this MVP uses a scoped subset — see Data Contracts) |
+| Grounded citation for Regulatory verdicts (chunk ID + effective date) | Full ISO 20022 pacs.008 schema (this MVP uses a scoped subset — see [Data Contracts](#data-contracts)) |
 | Mandatory human escalation for Sanctions near-misses — never auto-resolved | Live TCH/OFAC/BRIE integration (all data here is synthetic) |
 | Full audit trail (trace log) for every verdict | The broader Corporate Agentic Treasury Platform (Intelligent Routing, Payment Observability, Liquidity Optimizer, FX Optimizer are named as conceptual siblings only — not built, agent count TBD) |
 
@@ -124,7 +138,7 @@ The Qualifier's verdict is delivered synchronously, inside the RTP response wind
    └───────────────┘  scope. Downstream execution not built.
 ```
 
-**Design reference, not built:** a Regulatory HOLD on a structural violation (e.g. remittance field too long) could instead route to an Enrichment Agent for automated remediation under a configurable `agentic` vs. `human_in_the_loop` posture. A working sketch of this idea lives in `/reference/enrichment_agent_concept.py`, exercised standalone — it is never imported or called by the actual orchestrator. Reach, Sanctions, and Fraud HOLDs are permanently ineligible for this concept under any mode, by hard design boundary (auto-resolving a compliance judgment call would violate the recommendation-only authority principle).
+**Design reference, not built:** a Regulatory HOLD on a structural violation (e.g. remittance field too long) could instead route to an Enrichment Agent for automated remediation under a configurable `agentic` vs. `human_in_the_loop` posture. A working sketch of this idea lives in [`/reference/enrichment_agent_concept.py`](reference/enrichment_agent_concept.py), exercised standalone — it is never imported or called by the actual orchestrator. Reach, Sanctions, and Fraud HOLDs are permanently ineligible for this concept under any mode, by hard design boundary (auto-resolving a compliance judgment call would violate the recommendation-only authority principle).
 
 ## Design evolution across the program
 
@@ -134,36 +148,36 @@ The system began in Module 2 as a single ReAct agent — one reasoning loop per 
 
 | Component | Target state (production design) | This MVP | Why |
 |---|---|---|---|
-| Orchestration | CrewAI Process.hierarchical | LangGraph StateGraph | No CrewAI implementation exists anywhere in the curriculum materials to build against safely; LangGraph has a tested precedent |
+| Orchestration | CrewAI `Process.hierarchical` | LangGraph `StateGraph` | No CrewAI implementation exists anywhere in the curriculum materials to build against safely; LangGraph has a tested precedent |
 | Reach / Regulatory / Fraud reasoning | LLM-driven ReAct loop per pillar | Deterministic rule evaluation, wrapped in a ReAct-shaped trace | These are fixed-rule checks; a model call adds cost/latency/hallucination surface with no correctness gain |
 | Sanctions near-miss reasoning | LLM-driven ToT | Same structure, real LLM calls — the one pillar where reasoning is genuinely warranted | This is the one place fuzzy judgment is the actual task |
 | RAG (Regulatory pillar) | Pinecone, full TCH rulebook corpus, semantic embedding retrieval | In-memory store, ~9 synthetic chunks, keyword-match retrieval | Proves the effective-date filtering mechanism without needing a hosted vector DB or real document corpus |
 | External data (Reach, Sanctions, Fraud) | Live TCH directory, OFAC API, BRIE | Synthetic in-memory data | No live system access; enables hand-computed expected outcomes |
-| Observability | LangSmith | Hand-rolled TraceLogger / TraceEvaluator / EscalationQueue | Avoids an external account dependency in a zero-setup repo |
+| Observability | LangSmith | Hand-rolled `TraceLogger` / `TraceEvaluator` / `EscalationQueue` | Avoids an external account dependency in a zero-setup repo |
 | Guardrails | Layered pre/during/post-gen + NLI-based semantic verification | Same three-stage shape (Lab 6.1 pattern), regex/Jaccard-based checks | NLI adds a model dependency; regex/Jaccard is the tested, disclosed-limitation precedent |
-| Money representation | Decimal-precision currency type | Python float | Simpler for MVP legibility; explicitly not production-safe for real monetary values |
+| Money representation | Decimal-precision currency type | Python `float` | Simpler for MVP legibility; explicitly not production-safe for real monetary values |
 | pacs.008 schema | Full ISO 20022 field set | Scoped subset — only fields the four pillars consume | Keeps the data contract legible |
 | Packaging | N/A | Standalone repo, not an installable plugin (Option A) | Deliberate scope decision — see repo history |
 | Enrichment Agent (auto-remediation) | Possible extension, not part of the original design | Reference sketch only, never wired into the orchestrator | See Architecture section above |
 
 ## Verified vs. illustrative constants
 
-Every hardcoded numeric constant is either verified against a real public source or clearly marked illustrative. Full list with sources: `docs/verified_constants.md`. Highlights: the $10,000,000 RTP network cap (raised from $1,000,000 in Feb 2025) and the 140-character remittance limit are both verified; OFAC match-score thresholds and fraud-scoring weights are illustrative and disclosed as such in code.
+Every hardcoded numeric constant is either verified against a real public source or clearly marked illustrative. Full list with sources: [`docs/verified_constants.md`](docs/verified_constants.md). Highlights: the $10,000,000 RTP network cap (raised from $1,000,000 in Feb 2025) and the 140-character remittance limit are both verified; OFAC match-score thresholds and fraud-scoring weights are illustrative and disclosed as such in code.
 
 ## Data contracts
 
-Defined in `src/qualifier/schemas.py`: PaymentInstruction (scoped pacs.008 subset), QualifierState (LangGraph state), PillarResult, TraceEvent, QualificationResult. See that file for the literal, importable definitions.
+Defined in [`src/qualifier/schemas.py`](src/qualifier/schemas.py): `PaymentInstruction` (scoped pacs.008 subset), `QualifierState` (LangGraph state), `PillarResult`, `TraceEvent`, `QualificationResult`. See that file for the literal, importable definitions.
 
 ## Synthetic data disclosure
 
 **Every dataset in this repository is synthetic.** No real bank data, no real OFAC SDN entries, no real customer or transaction data, no real routing numbers tied to actual institutions.
 
-- **Participant directory** — fictional institution names; routing numbers are prefixed 999 (an unallocated ABA prefix block) and verified to fail the ABA routing-number checksum, so they cannot resolve to a real institution even by accident.
+- **Participant directory** — fictional institution names; routing numbers are prefixed `999` (an unallocated ABA prefix block) and verified to fail the ABA routing-number checksum, so they cannot resolve to a real institution even by accident.
 - **OFAC watchlist** — entirely fictional names, including the engineered near-miss entries. Not derived from or resembling any real SDN list entry.
 - **Transaction log / sample payments** — fabricated originator/beneficiary details.
-- **Regulatory rule chunks** — the numeric constants (140-char limit, $10M cap) are real and verified; the chunk text itself is original illustrative language, not copied or paraphrased from TCH's member-gated Operating Rules (which could not be accessed for this project). Each chunk is individually tagged verified or illustrative.
+- **Regulatory rule chunks** — the *numeric constants* (140-char limit, $10M cap) are real and verified; the *chunk text itself* is original illustrative language, not copied or paraphrased from TCH's member-gated Operating Rules (which could not be accessed for this project). Each chunk is individually tagged `verified` or `illustrative`.
 
-Two fictional names — "Viktor A. Marchetti" and "Daniel R. Osei-Mensah" — deliberately omit the (synthetic) suffix used elsewhere, because appending it would dilute the string-similarity score against the watchlist and break the engineered match bands. This is intentional, not an oversight.
+Two fictional names — "Viktor A. Marchetti" and "Daniel R. Osei-Mensah" — deliberately omit the `(synthetic)` suffix used elsewhere, because appending it would dilute the string-similarity score against the watchlist and break the engineered match bands. This is intentional, not an oversight.
 
 ## Repository contents
 
@@ -198,12 +212,15 @@ payments-qualifier-agent/
 ## How to run
 
 **Option A — Google Colab (recommended, no local setup):**
-1. Upload the whole repo folder to Colab (or mount from Google Drive / clone from GitHub once pushed)
-2. Open notebook/payments_qualifier_prototype.ipynb
-3. Run all cells. Set ANTHROPIC_API_KEY as a Colab secret if you want the Sanctions ToT branch to make a real LLM call — without it, near-miss cases still escalate correctly, just without live ToT reasoning (see orchestrator.py's graceful-degradation note)
+1. Clone or download the repo: `git clone https://github.com/HarryLindsley/payments-qualifier-agent.git` (or download the ZIP from GitHub's "Code" button)
+2. Upload the whole folder to Colab, or mount it from Google Drive
+3. Open `notebook/payments_qualifier_prototype.ipynb`
+4. Run all cells. Set `ANTHROPIC_API_KEY` as a Colab secret if you want the Sanctions ToT branch to make a real LLM call — without it, near-miss cases still escalate correctly, just without live ToT reasoning (see `orchestrator.py`'s graceful-degradation note)
 
 **Option B — Local:**
 ```bash
+git clone https://github.com/HarryLindsley/payments-qualifier-agent.git
+cd payments-qualifier-agent
 pip install -r requirements.txt
 export ANTHROPIC_API_KEY=sk-...   # optional, see above
 python eval/run_eval.py
@@ -217,20 +234,20 @@ python eval/run_eval.py
 
 **ESCALATED — SCN-06, sanctions near-miss:** Beneficiary "Daniel R. Osei-Mensah" scores 0.8 against watchlist entry "Daniel R. Osei" — inside the 0.65-0.85 near-miss band. Triggers ToT (Generator/Critic), which produces a recommendation, not a resolution — **final: ESCALATED_PENDING_DECIDER**, never auto-resolved to PASS or HOLD.
 
-See examples/interactive_demo.html to run all 8 scenarios yourself.
+See [`examples/interactive_demo.html`](examples/interactive_demo.html) to run all 8 scenarios yourself.
 
 ## Interactive demos
 
-- **examples/interactive_demo.html** — all 8 core scenarios, pillar-by-pillar trace, runs in any browser, embeds real (not simulated) tool output captured from the actual Python modules.
-- **examples/tot_live_demo.html** — makes two real Anthropic API calls (Generator + Critic) using the exact prompts from tot_sanctions.py, for the SCN-06 near-miss case. Requires an API key when self-hosted outside claude.ai's artifact proxy.
+- **`examples/interactive_demo.html`** — all 8 core scenarios, pillar-by-pillar trace, runs in any browser, embeds real (not simulated) tool output captured from the actual Python modules.
+- **`examples/tot_live_demo.html`** — makes two real Anthropic API calls (Generator + Critic) using the exact prompts from `tot_sanctions.py`, for the SCN-06 near-miss case. Requires an API key when self-hosted outside claude.ai's artifact proxy.
 
 ## Evaluation
 
-Run eval/run_eval.py to regenerate results. Full methodology and results: eval/results_summary.md.
+Run `eval/run_eval.py` to regenerate results. Full methodology and results: [`eval/results_summary.md`](eval/results_summary.md).
 
-**Headline results:** 8/8 core scenarios matched hand-computed ground truth (data/expected_outcomes.json, written *before* any pipeline code existed). 8/8 passed the 5-Metric Rule evaluator (Context Adherence, Action Advancement, Custom Code Eval, Escalation-Routing Accuracy, Latency — exact metric set specified in the Module 6 capstone doc).
+**Headline results:** 8/8 core scenarios matched hand-computed ground truth (`data/expected_outcomes.json`, written *before* any pipeline code existed). 8/8 passed the 5-Metric Rule evaluator (Context Adherence, Action Advancement, Custom Code Eval, Escalation-Routing Accuracy, Latency — exact metric set specified in the Module 6 capstone doc).
 
-**Disclosure: the SCN-06 (Sanctions near-miss) result in the committed eval/results.csv and results_summary.md was generated using a mock LLM client, not a live Anthropic API call**, because no API key was available in the environment this was built in. The ToT prompt/parsing logic was separately validated against a real model via examples/tot_live_demo.html (two genuine API calls, real model-generated hypotheses and scores) — but that validation run and the committed evaluation run are not the same execution. If you re-run eval/run_eval.py with a real anthropic.Anthropic() client substituted for MockClient, SCN-06's specific recommendation text will differ from what's committed here, though the escalation behavior (never auto-resolving) is enforced independently of the LLM's output and will not change.
+**Disclosure: the SCN-06 (Sanctions near-miss) result in the committed `eval/results.csv` and `results_summary.md` was generated using a mock LLM client, not a live Anthropic API call** — see [Limitations & next steps](#limitations--next-steps) for the full disclosure and what it does and doesn't affect.
 
 **Escalation queue context:** 7/8 scenarios in this set escalate (6 to Validator, 1 to Decider). This is a stress-test scenario mix, deliberately constructed so every pillar/branch gets exercised — it is not a claim about real-world HOLD rates.
 
@@ -242,19 +259,21 @@ Run eval/run_eval.py to regenerate results. Full methodology and results: eval/r
 | Any HOLD verdict (Reach, Regulatory, Sanctions confirmed match, Fraud) | Validator — reviews before correction/resubmission |
 | Blocked input (Gate 1) | Validator |
 
-## Known limitations
-
-Disclosed in full in eval/results_summary.md; summarized here:
-- The output-leakage guardrail (Custom Code Eval) has never been triggered by real pipeline output — verified correct in isolation only, since no pillar's reason text happens to contain an account number in this scenario set.
-- The tool-call loop detector (Action Advancement) has never been triggered — the deterministic tools never retry.
-- Latency figures are sandbox execution time, not a production SLA measurement.
-- Fraud-scoring weights and the OFAC match-score bands are untuned, illustrative values (disclosed in code).
-- The post-generation claim-verification approach (Jaccard-style similarity, inherited from Lab 6.1's guardrail pattern) cannot detect semantic inversions — e.g. "is an active participant" vs. "is NOT an active participant" would score as similar.
-
 ## Sibling agents (not built)
 
 Named in the broader Corporate Agentic Treasury Platform concept, referenced for context only: Intelligent Routing Agent (would consume this agent's PASS verdicts), Payment Observability Agent, Liquidity Optimizer, FX Optimizer. Total platform agent count is undefined and out of scope here.
 
 ## Limitations & next steps
 
-See the Design Decisions table above — each "target state" cell is effectively a next step: real CrewAI orchestration, LangSmith observability, live TCH/OFAC/BRIE integration, a production vector store with the full rulebook corpus, decimal-precision money handling, and (if pursued) a real Enrichment Agent built out from the reference sketch with human sign-off on the auto-remediation boundary.
+**Architectural next steps** — see the Design Decisions table above; each "target state" cell is effectively a next step: real CrewAI orchestration, LangSmith observability, live TCH/OFAC/BRIE integration, a production vector store with the full rulebook corpus, decimal-precision money handling, and (if pursued) a real Enrichment Agent built out from the reference sketch with human sign-off on the auto-remediation boundary.
+
+**Evaluation limitation:** the SCN-06 (Sanctions near-miss) result in the committed `eval/results.csv` and `results_summary.md` was generated using a mock LLM client, not a live Anthropic API call, because no API key was available in the environment this was built in. The ToT prompt/parsing logic was separately validated against a real model via `examples/tot_live_demo.html` (two genuine API calls, real model-generated hypotheses and scores) — but that validation run and the committed evaluation run are not the same execution. If you re-run `eval/run_eval.py` with a real `anthropic.Anthropic()` client substituted for `MockClient`, SCN-06's specific recommendation text will differ from what's committed here, though the escalation behavior (never auto-resolving) is enforced independently of the LLM's output and will not change.
+
+**Guardrail and metric limitations, disclosed rather than hidden:**
+- The output-leakage guardrail (Custom Code Eval) has never been triggered by real pipeline output — verified correct in isolation only, since no pillar's reason text happens to contain an account number in this scenario set.
+- The tool-call loop detector (Action Advancement) has never been triggered — the deterministic tools never retry.
+- Latency figures are sandbox execution time, not a production SLA measurement.
+- Fraud-scoring weights and the OFAC match-score bands are untuned, illustrative values (disclosed in code).
+- The post-generation claim-verification approach (Jaccard-style similarity, inherited from Lab 6.1's guardrail pattern) cannot detect semantic inversions — e.g. "is an active participant" vs. "is NOT an active participant" would score as similar.
+
+**Other gaps:** the fraud-scoring formula and OFAC band thresholds need calibration against real historical data before they could inform an actual decision; the guardrails need a stronger detection mechanism than regex/similarity matching; and the downstream consumption of a PASS verdict — the processing engine and Intelligent Routing Agent that would actually act on the Qualifier's recommendation — was never built, since it was explicitly out of scope for this capstone.
