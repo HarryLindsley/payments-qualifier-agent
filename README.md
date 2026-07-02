@@ -17,7 +17,7 @@ Three ways to review, depending on what you want:
   cd payments-qualifier-agent
   ```
   then follow [How to run](#how-to-run) below (Colab or local).
-- **Want to review the code:** start at [`src/qualifier/agents/orchestrator.py`](src/qualifier/agents/orchestrator.py) (the LangGraph pipeline), then the four pillar tools in [`src/qualifier/tools/`](src/qualifier/tools/).
+- **Want to review the code:** read [`docs/pillar_logic.md`](docs/pillar_logic.md) first (what each pillar checks and why), then [`src/qualifier/agents/orchestrator.py`](src/qualifier/agents/orchestrator.py) (how they're wired together), then the four pillar tools in [`src/qualifier/tools/`](src/qualifier/tools/).
 
 ---
 
@@ -26,6 +26,7 @@ Three ways to review, depending on what you want:
 - [The problem](#the-problem)
 - [What this agent does — and doesn't do](#what-this-agent-does--and-doesnt-do)
 - [Architecture](#architecture)
+- [Pillar logic — what each check does and why](#pillar-logic)
 - [Design evolution across the program](#design-evolution-across-the-program)
 - [Design decisions — MVP vs. target state](#design-decisions--mvp-vs-target-state)
 - [Verified vs. illustrative constants](#verified-vs-illustrative-constants)
@@ -140,6 +141,10 @@ The Qualifier's verdict is delivered synchronously, inside the RTP response wind
 
 **Design reference, not built:** a Regulatory HOLD on a structural violation (e.g. remittance field too long) could instead route to an Enrichment Agent for automated remediation under a configurable `agentic` vs. `human_in_the_loop` posture. A working sketch of this idea lives in [`/reference/enrichment_agent_concept.py`](reference/enrichment_agent_concept.py), exercised standalone — it is never imported or called by the actual orchestrator. Reach, Sanctions, and Fraud HOLDs are permanently ineligible for this concept under any mode, by hard design boundary (auto-resolving a compliance judgment call would violate the recommendation-only authority principle).
 
+## Pillar logic
+
+The diagram above shows *what order* things run in and *what happens on a HOLD* — it deliberately doesn't explain *why* each pillar makes the decision it makes. For that: **[`docs/pillar_logic.md`](docs/pillar_logic.md)** is the single source of truth for each pillar's exact decision logic — thresholds, weights, what's verified vs. illustrative, and the reasoning behind each design choice (e.g. why Sanctions splits into two escalation paths while Fraud only has one, why Reach checks two separate caps instead of one). 
+
 ## Design evolution across the program
 
 The system began in Module 2 as a single ReAct agent — one reasoning loop per pillar, with memory split between a transaction log (duplicate detection) and a vector store (rule retrieval). Module 3 added retrieval specifically where the LLM's own knowledge is stale or unauditable (participant directory, scheme rules), with effective-date metadata filtering to prevent superseded rules from being retrieved. Module 4 identified that three of the four pillars are deterministic, but Sanctions Compliance has a genuinely fuzzy middle — Tree-of-Thought reasoning was scoped narrowly to that one insertion point. Module 5 redesigned the system as five agents (one orchestrator, four scoped specialists) to reduce the hallucination risk of one generalist prompt spanning four compliance domains, and formalized the recommendation-only boundary. Module 6 closed the loop from "reasons well" to "fails safely" — guardrails at defined control points, and human-in-the-loop redesigned from a blocking gate into a confidence-based router.
@@ -186,7 +191,8 @@ payments-qualifier-agent/
 ├── README.md
 ├── requirements.txt
 ├── docs/
-│   └── verified_constants.md
+│   ├── verified_constants.md
+│   └── pillar_logic.md
 ├── src/qualifier/
 │   ├── schemas.py
 │   ├── guardrails.py
